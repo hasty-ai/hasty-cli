@@ -1,13 +1,17 @@
 package cmd
 
 import (
-	"fmt"
+	"context"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/hasty-ai/hasty-go"
+	"github.com/hasty-ai/hasty-go/client"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -79,6 +83,9 @@ func imagesS3Import(cmd *cobra.Command, args []string) {
 	exitOnErr(err)
 	svc = s3.New(sess)
 
+	log.Debug("Instantiate Hasty client")
+	hc := client.New(os.Getenv("HASTY_API_KEY"), nil)
+
 	log.Debug("Listing S3 objects in bucket")
 	f := func(page *s3.ListObjectsV2Output, lastPage bool) bool {
 		for _, i := range page.Contents {
@@ -93,9 +100,19 @@ func imagesS3Import(cmd *cobra.Command, args []string) {
 			})
 			link, err := req.Presign(15 * time.Minute)
 			if err != nil {
-				log.Warnf("Unable to get signed link for file %s", i.Key)
+				log.Warnf("Unable to get signed link for file %s", *i.Key)
 			}
-			fmt.Println(link)
+
+			ctx := context.Background()
+			params := &hasty.ImageUploadExternalParams{
+				Project:  &imagesS3ImportFlags.Project,
+				Dataset:  &imagesS3ImportFlags.Dataset,
+				URL:      &link,
+				Copy:     hasty.Bool(true),
+				Filename: hasty.String(filepath.Base(*i.Key)),
+			}
+			_, err = hc.Image.UploadExternal(ctx, params)
+			exitOnErr(err)
 		}
 		return true
 	}
@@ -109,38 +126,5 @@ func imagesS3Import(cmd *cobra.Command, args []string) {
 	err = svc.ListObjectsV2Pages(listParams, f)
 	exitOnErr(err)
 
-	/*
-
-		objectCh := client.ListObjects(ctx, bucket, minio.ListObjectsOptions{
-			Prefix:    prefix,
-			Recursive: true,
-		})
-
-		for object := range objectCh {
-			if object.Err != nil {
-				fmt.Println(object.Err)
-				return
-			}
-
-			if object.Key[len(object.Key)-1] == byte('/') {
-				continue
-			}
-
-			fn := path.Base(object.Key)
-			reqParams := make(url.Values)
-			reqParams.Set("response-content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", fn))
-
-			// Generates a presigned url which expires in a day.
-			presignedURL, err := client.PresignedGetObject(ctx, bucket, object.Key, 60*60*24*365*10*time.Second, reqParams)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-
-			_, _, _ = testclient.ImagesUploadExternalURL(session, project, dataset, presignedURL.String(), true)
-
-			fmt.Printf("Upload: %s\n", object.Key)
-		}
-	*/
 	log.Info("Import is done")
 }
