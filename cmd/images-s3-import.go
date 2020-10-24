@@ -11,7 +11,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/hasty-ai/hasty-go"
-	"github.com/hasty-ai/hasty-go/client"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 )
@@ -84,7 +83,7 @@ func imagesS3Import(cmd *cobra.Command, args []string) {
 	svc = s3.New(sess)
 
 	log.Debug("Instantiate Hasty client")
-	hc := client.New(os.Getenv("HASTY_API_KEY"), nil)
+	hc := hasty.NewClient(os.Getenv("HASTY_API_KEY"))
 
 	log.Debug("Listing S3 objects in bucket")
 	f := func(page *s3.ListObjectsV2Output, lastPage bool) bool {
