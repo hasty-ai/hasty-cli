@@ -36,9 +36,10 @@ func BuildCmdTree() *cobra.Command {
 	c.Flags().StringVar(&i.config.Prefix, "prefix", "", "files path prefix (optional)")
 	c.Flags().StringVar(&i.config.Project, "project", "", "existing project ID to import images to (required)")
 	c.Flags().StringVar(&i.config.Dataset, "dataset", "", "existing dataset ID to import images to (required)")
-	c.MarkFlagRequired("bucket")
-	c.MarkFlagRequired("project")
-	c.MarkFlagRequired("dataset")
+	// It is fine to ignore these errors
+	_ = c.MarkFlagRequired("bucket")
+	_ = c.MarkFlagRequired("project")
+	_ = c.MarkFlagRequired("dataset")
 
 	return c
 }
