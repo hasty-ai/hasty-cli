@@ -4,7 +4,7 @@ go 1.14
 
 require (
 	github.com/aws/aws-sdk-go v1.35.14
-	github.com/hasty-ai/hasty-go v0.1.4
+	github.com/hasty-ai/hasty-go v0.1.5
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/sirupsen/logrus v1.7.0
 	github.com/spf13/cobra v1.1.1
