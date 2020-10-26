@@ -45,7 +45,7 @@ type importer struct {
 
 func (i *importer) run(cmd *cobra.Command, args []string) {
 	if err := envconfig.Process("", &i.config); err != nil {
-		log.Error("Unable to read configuration from environment variables: %s", err)
+		log.Errorf("Unable to read configuration from environment variables: %s", err)
 		return
 	}
 
