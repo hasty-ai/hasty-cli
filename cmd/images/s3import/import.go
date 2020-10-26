@@ -111,7 +111,7 @@ func (i *importer) fetchFromS3(ctx context.Context, ch chan<- image) {
 				Bucket: &i.config.Bucket,
 				Key:    o.Key,
 			})
-			link, err := req.Presign(15 * time.Minute)
+			link, err := req.Presign(signTimeout)
 			if err == nil {
 				errs = 0 // Reset errors counter
 			} else {
