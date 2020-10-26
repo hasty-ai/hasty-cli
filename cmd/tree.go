@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"github.com/hasty-ai/cli/cmd/images"
 	"github.com/spf13/cobra"
+
+	"github.com/hasty-ai/cli/cmd/images"
 )
 
 // BuildCmdTree defines root command and includes into it all subcommands
