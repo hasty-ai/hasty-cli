@@ -4,4 +4,4 @@
 
 ## Usage
 
-Download the archive for your operating system, unpack it and run the tool. It will show help message with available subcommands and their respective parameters.
+Download the archive for your operating system from [Releases](https://github.com/hasty-ai/hasty-cli/releases) page, unpack it and run the tool. It will show help message with available subcommands and their respective parameters.
