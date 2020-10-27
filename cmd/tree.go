@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/hasty-ai/cli/cmd/dataset"
 	"github.com/hasty-ai/cli/cmd/images"
 )
 
@@ -20,6 +21,7 @@ key that can be obtained using the application: https://app.hasty.ai
 	}
 
 	c.AddCommand(images.BuildCmdTree())
+	c.AddCommand(dataset.BuildCmdTree())
 
 	return c
 }

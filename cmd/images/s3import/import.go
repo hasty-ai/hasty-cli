@@ -45,8 +45,7 @@ type importer struct {
 
 func (i *importer) run(cmd *cobra.Command, args []string) {
 	if err := envconfig.Process("", &i.config); err != nil {
-		log.Errorf("Unable to read configuration from environment variables: %s", err)
-		return
+		log.Fatalf("Unable to read configuration from environment variables: %s", err)
 	}
 
 	log.Info("Perform images import from AWS S3")
@@ -71,8 +70,7 @@ func (i *importer) fetchFromS3(ctx context.Context, ch chan<- image) {
 	}
 	sess, err := session.NewSession(cfg)
 	if err != nil {
-		log.Errorf("Unable to instantiate AWS API session: %s", err)
-		return
+		log.Fatalf("Unable to instantiate AWS API session: %s", err)
 	}
 	svc := s3.New(sess)
 
@@ -81,16 +79,14 @@ func (i *importer) fetchFromS3(ctx context.Context, ch chan<- image) {
 		Bucket: &i.config.Bucket,
 	})
 	if err != nil {
-		log.Errorf("Unable to get S3 bucket location: %s", err)
-		return
+		log.Fatalf("Unable to get S3 bucket location: %s", err)
 	}
 
 	log.Debug("Re-instantiate AWS client with proper region in config")
 	cfg.Region = resp.LocationConstraint
 	sess, err = session.NewSession(cfg)
 	if err != nil {
-		log.Errorf("Unable to instantiate AWS API session: %s", err)
-		return
+		log.Fatalf("Unable to instantiate AWS API session: %s", err)
 	}
 	svc = s3.New(sess)
 
@@ -99,8 +95,7 @@ func (i *importer) fetchFromS3(ctx context.Context, ch chan<- image) {
 	f := func(page *s3.ListObjectsV2Output, lastPage bool) bool {
 		for _, o := range page.Contents {
 			if errs > maxImportErrors {
-				log.Error("Too many errors happened one by one, giving up import")
-				return false // Proceed to completion of import
+				log.Fatalf("Too many errors happened one by one, giving up import")
 			}
 			if strings.HasSuffix(*o.Key, "/") {
 				log.Infof("Skip directory '%s'", *o.Key)
@@ -151,8 +146,7 @@ func (i *importer) importToHasty(ctx context.Context, cancel context.CancelFunc,
 	errs := 0
 	for img := range ch {
 		if errs > maxImportErrors {
-			log.Error("Too many errors happened one by one, giving up import")
-			return // Proceed to completion of import
+			log.Fatalf("Too many errors happened one by one, giving up import")
 		}
 		callCtx, callCancel := context.WithTimeout(ctx, httpTimeout)
 		params := &hasty.ImageUploadExternalParams{
