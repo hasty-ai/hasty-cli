@@ -32,7 +32,7 @@ func (c *Client) ImportImages(ctx context.Context, project, dataset string, ch <
 			Project:  &project,
 			Dataset:  &dataset,
 			URL:      &img.URL,
-			Copy:     hasty.Bool(true),
+			Copy:     hasty.Bool(true), // TODO: this should be configurable
 			Filename: &img.Filename,
 		}
 		if _, err := c.cli.Image.UploadExternal(callCtx, params); err == nil {
