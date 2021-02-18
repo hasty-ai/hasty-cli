@@ -13,30 +13,23 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 
-	"github.com/hasty-ai/hasty-go"
+	client "github.com/hasty-ai/cli/lib/hasty"
 )
 
 const batchSize int64 = 100
 const region = "eu-central-1" // Germany, closest to Hasty, but it does not really matter
 const signTimeout = 1 * time.Hour
-const inFlight = 10 // Buffer size
-const httpTimeout = 5 * time.Second
+const inFlight = 10        // Buffer size
 const maxImportErrors = 10 // Max consequent import errors before failing whole run
 
 type config struct {
+	client.Config
 	Bucket    string
 	Prefix    string
 	Project   string
 	Dataset   string
 	AWSKey    string `envconfig:"AWS_ACCESS_KEY_ID" required:"true"`
 	AWSSecret string `envconfig:"AWS_SECRET_ACCESS_KEY" required:"true"`
-	HastyKey  string `envconfig:"HASTY_API_KEY" required:"true"`
-}
-
-type image struct {
-	URL      string
-	Path     string
-	Filename string
 }
 
 type importer struct {
@@ -52,15 +45,19 @@ func (i *importer) run(cmd *cobra.Command, args []string) {
 	// This context will be cancelled when all images are imported, or on problem
 	ctx, cancel := context.WithCancel(cmd.Context())
 
-	ch := make(chan image, inFlight)
+	hc := client.New(i.config.Config)
+	ch := make(chan client.Image, inFlight)
 
-	go i.fetchFromS3(ctx, ch)
-	go i.importToHasty(ctx, cancel, ch)
+	go i.fetch(ctx, ch)
+	go func() {
+		hc.ImportImages(ctx, i.config.Project, i.config.Dataset, ch)
+		cancel()
+	}()
 
 	<-ctx.Done()
 }
 
-func (i *importer) fetchFromS3(ctx context.Context, ch chan<- image) {
+func (i *importer) fetch(ctx context.Context, ch chan<- client.Image) {
 	// Irrelevant of what happens, the channel must be closed, as another goroutine waits for that
 	defer close(ch)
 
@@ -115,7 +112,7 @@ func (i *importer) fetchFromS3(ctx context.Context, ch chan<- image) {
 				break
 			}
 			// Send the image to importer
-			ch <- image{
+			ch <- client.Image{
 				URL:      link,
 				Path:     *o.Key,
 				Filename: filepath.Base(*o.Key),
@@ -134,36 +131,4 @@ func (i *importer) fetchFromS3(ctx context.Context, ch chan<- image) {
 		log.Errorf("Unable to list S3 bucket: %s", err)
 		return
 	}
-}
-
-func (i *importer) importToHasty(ctx context.Context, cancel context.CancelFunc, ch <-chan image) {
-	// Irrelevant of what happens, context has to be cancelled, as main goroutine waits for that
-	defer cancel()
-
-	log.Debug("Instantiate Hasty client")
-	hc := hasty.NewClient(i.config.HastyKey)
-
-	errs := 0
-	for img := range ch {
-		if errs > maxImportErrors {
-			log.Fatalf("Too many errors happened one by one, giving up import")
-		}
-		callCtx, callCancel := context.WithTimeout(ctx, httpTimeout)
-		params := &hasty.ImageUploadExternalParams{
-			Project:  &i.config.Project,
-			Dataset:  &i.config.Dataset,
-			URL:      &img.URL,
-			Copy:     hasty.Bool(true),
-			Filename: &img.Filename,
-		}
-		if _, err := hc.Image.UploadExternal(callCtx, params); err == nil {
-			errs = 0 // Reset errors counter
-		} else {
-			log.Warnf("Unable to import file %s: %s", img.Path, err)
-			errs++
-		}
-		callCancel() // Avoid contexts leak
-	}
-	// Channel is closed by another goroutine
-	log.Info("Import is done")
 }
