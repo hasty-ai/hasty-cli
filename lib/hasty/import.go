@@ -43,6 +43,5 @@ func (c *Client) ImportImages(ctx context.Context, project, dataset string, ch <
 		}
 		cancel() // Avoid contexts leak
 	}
-	// Channel is closed by another goroutine
 	log.Info("Import is done")
 }
