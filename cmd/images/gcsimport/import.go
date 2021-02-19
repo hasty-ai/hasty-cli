@@ -12,15 +12,12 @@ import (
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
 	"golang.org/x/oauth2/google"
-	"golang.org/x/oauth2/jwt"
 	"google.golang.org/api/iterator"
 	"google.golang.org/api/option"
 
 	client "github.com/hasty-ai/cli/lib/hasty"
 )
 
-const batchSize int64 = 100
-const region = "eu-central-1" // Germany, closest to Hasty, but it does not really matter
 const signTimeout = 1 * time.Hour
 const inFlight = 10        // Buffer size
 const maxImportErrors = 10 // Max consequent import errors before failing whole run
@@ -37,8 +34,6 @@ type config struct {
 
 type importer struct {
 	config config
-	creds  *google.Credentials
-	conf   *jwt.Config
 }
 
 func (i *importer) run(cmd *cobra.Command, args []string) {
