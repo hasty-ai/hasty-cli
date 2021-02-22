@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -95,6 +96,10 @@ func (i *importer) fetch(ctx context.Context, ch chan<- client.Image) {
 		if err != nil {
 			log.Warnf("Unable to list objects: %s", err)
 			errs++
+			continue
+		}
+		if strings.HasSuffix(attrs.Name, "/") {
+			log.Infof("Skip directory '%s'", attrs.Name)
 			continue
 		}
 
