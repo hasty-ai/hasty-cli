@@ -3,6 +3,7 @@ package images
 import (
 	"github.com/spf13/cobra"
 
+	"github.com/hasty-ai/cli/cmd/images/gcsimport"
 	"github.com/hasty-ai/cli/cmd/images/s3import"
 )
 
@@ -14,6 +15,7 @@ func BuildCmdTree() *cobra.Command {
 	}
 
 	c.AddCommand(s3import.BuildCmdTree())
+	c.AddCommand(gcsimport.BuildCmdTree())
 
 	return c
 }
