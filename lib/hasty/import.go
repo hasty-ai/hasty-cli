@@ -37,6 +37,7 @@ func (c *Client) ImportImages(ctx context.Context, project, dataset string, ch <
 		}
 		if _, err := c.cli.Image.UploadExternal(callCtx, params); err == nil {
 			errs = 0 // Reset errors counter
+			log.Infof("Imported: %s", img.Path)
 		} else {
 			log.Warnf("Unable to import file %s: %s", img.Path, err)
 			errs++
