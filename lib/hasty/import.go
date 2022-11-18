@@ -9,8 +9,8 @@ import (
 	"github.com/hasty-ai/hasty-go"
 )
 
-const importTimeout = 5 * time.Second
-const importMaxErrors = 10 // Max consequent import errors before failing whole run
+const importTimeout = 30 * time.Second
+const importMaxErrors = 100000 // Max consequent import errors before failing whole run
 
 // Image that can be imported
 type Image struct {

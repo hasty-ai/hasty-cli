@@ -4,6 +4,7 @@ import (
 	"context"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
@@ -16,11 +17,12 @@ import (
 	client "github.com/hasty-ai/cli/lib/hasty"
 )
 
-const batchSize int64 = 100
+const batchSize int64 = 200
 const region = "eu-central-1" // Germany, closest to Hasty, but it does not really matter
 const signTimeout = 1 * time.Hour
-const inFlight = 10        // Buffer size
-const maxImportErrors = 10 // Max consequent import errors before failing whole run
+const inFlight = 10          // Buffer size
+const maxImportErrors = 10   // Max consequent import errors before failing whole run
+const importParallelism = 10 // Number of import workers
 
 type config struct {
 	client.Config
@@ -44,17 +46,24 @@ func (i *importer) run(cmd *cobra.Command, args []string) {
 	log.Info("Perform images import from AWS S3")
 	// This context will be cancelled when all images are imported, or on problem
 	ctx, cancel := context.WithCancel(cmd.Context())
+	defer cancel()
 
 	hc := client.New(i.config.Config)
 	ch := make(chan client.Image, inFlight)
 
 	go i.fetch(ctx, ch)
-	go func() {
-		hc.ImportImages(ctx, i.config.Project, i.config.Dataset, ch)
-		cancel()
-	}()
 
-	<-ctx.Done()
+	var wg sync.WaitGroup
+	for j := 0; j < importParallelism; j++ {
+		wg.Add(1)
+		go func() {
+			hc.ImportImages(ctx, i.config.Project, i.config.Dataset, ch)
+			wg.Done()
+			// cancel()
+		}()
+	}
+
+	wg.Wait()
 }
 
 func (i *importer) fetch(ctx context.Context, ch chan<- client.Image) {
@@ -71,16 +80,19 @@ func (i *importer) fetch(ctx context.Context, ch chan<- client.Image) {
 	}
 	svc := s3.New(sess)
 
-	log.Debug("Find out S3 bucket location region")
-	resp, err := svc.GetBucketLocation(&s3.GetBucketLocationInput{
-		Bucket: &i.config.Bucket,
-	})
-	if err != nil {
-		log.Fatalf("Unable to get S3 bucket location: %s", err)
-	}
+	/*
+		log.Debug("Find out S3 bucket location region")
+		resp, err := svc.GetBucketLocation(&s3.GetBucketLocationInput{
+			Bucket: &i.config.Bucket,
+		})
+		if err != nil {
+			log.Fatalf("Unable to get S3 bucket location: %s", err)
+		}
+	*/
 
 	log.Debug("Re-instantiate AWS client with proper region in config")
-	cfg.Region = resp.LocationConstraint
+	// cfg.Region = resp.LocationConstraint
+	cfg.Region = aws.String("ap-southeast-2")
 	sess, err = session.NewSession(cfg)
 	if err != nil {
 		log.Fatalf("Unable to instantiate AWS API session: %s", err)
