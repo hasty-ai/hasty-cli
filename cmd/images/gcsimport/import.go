@@ -2,8 +2,8 @@ package gcsimport
 
 import (
 	"context"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strings"
 	"time"
@@ -63,7 +63,7 @@ func (i *importer) fetch(ctx context.Context, ch chan<- client.Image) {
 	defer close(ch)
 
 	log.Debug("Configure GCS client")
-	keyJSON, err := ioutil.ReadFile(i.config.CredsFile)
+	keyJSON, err := os.ReadFile(i.config.CredsFile)
 	if err != nil {
 		log.Fatalf("Unable to read credentials from file `%s`: %s", i.config.CredsFile, err)
 	}

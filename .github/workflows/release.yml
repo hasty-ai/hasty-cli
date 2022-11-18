@@ -15,6 +15,7 @@ jobs:
           - darwin
         goarch:
           - amd64
+          - arm64
     steps:
     - uses: actions/checkout@v2
     - uses: wangyoucao577/go-release-action@master
@@ -22,7 +23,7 @@ jobs:
         github_token: ${{ secrets.GITHUB_TOKEN }}
         goos: ${{ matrix.goos }}
         goarch: ${{ matrix.goarch }}
-        goversion: "https://dl.google.com/go/go1.16.linux-amd64.tar.gz"
+        goversion: "https://dl.google.com/go/go1.18.linux-amd64.tar.gz"
         project_path: "."
         binary_name: "hasty"
         extra_files: LICENSE
